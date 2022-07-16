@@ -97,10 +97,12 @@ $(document).ready(function(){
       }
     })
   })
+  liveButton.hide();
   
   favButton.click(function(){
     expandAllFollowedChannels();
-  
+    liveButton.hide();
+    
     let followedChannels = $('div[aria-label="Followed Channels"] div.tw-transition-group > div');
     let showLessButton = $([
         'div[aria-label="Followed Channels"] ',
@@ -110,18 +112,43 @@ $(document).ready(function(){
     $(showLessButton).attr('style', 'display: none !important');
     
     let channelCount = 0;
+    let favoriteChannels = [];
     $(followedChannels).each(function() {
       if ($(this).html().includes('Offline')) {
         $(this).attr('style', 'display: none');
         return;
       }
-      if (!$(this).html().includes('favorite-channel') && 
-          favoriteChannelNames.some(x => $(this).html().includes(x))) {
+      
+      channelCount++;
+      if (favoriteChannelNames.some(x => $(this).html().includes(x))) {
             $(this).find('div').first().addClass('favorite-channel');
-            $(this).prependTo(this.parentNode);
+            // $(this).prependTo(this.parentNode);
+            favoriteChannels.push(this);
       }
     });
     
+    // sort by the order in favoriteChannelNames in reverse
+    favoriteChannels.sort((a, b) => {
+      function getChannelIndex(s) {
+          var index = -1;
+          favoriteChannelNames.some(function (c, i) {
+              if (~s.indexOf(c)) {
+                  index = i;
+                  return true;
+              }
+          });
+          return index;
+      }
+      return getChannelIndex($(b).html()) - getChannelIndex($(a).html());
+    });
+    
+    // added the reversed sorted array to parent so its displayed 
+    // by the order in favoriteChannelNames
+    $(favoriteChannels).each(function() {
+      $(this).prependTo(this.parentNode);
+    })
+    
+    // hide extra channels that exceeds the channelCountLimit
     if (followedChannels.length >= channelCountLimit) {
       let diff = channelCountLimit - followedChannels.length;
       followedChannels = $('div[aria-label="Followed Channels"] div.tw-transition-group > div');
@@ -130,6 +157,12 @@ $(document).ready(function(){
       })
     }
     
+    // show live button when the number of live channels exceed channelCountLimit
+    if (channelCount > channelCountLimit) {
+      liveButton.show();
+    }
+    
+    // update the live icon to big yellow
     $('div.favorite-channel div.tw-channel-status-indicator').css({
       "background-color": "yellow",
       "width": "1em",
